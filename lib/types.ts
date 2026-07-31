@@ -24,7 +24,7 @@ export interface ValueBet {
   profit_loss: number | null
 }
 
-export type BetStatus = 'active' | 'won' | 'lost' | 'void' | 'pending_result'
+export type BetStatus = 'active' | 'inactive' | 'won' | 'lost' | 'void' | 'pending_result'
 export type BetResult = 'won' | 'lost' | 'void'
 
 export interface Bankroll {

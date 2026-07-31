@@ -33,7 +33,7 @@ const migrations = [
         league TEXT NOT NULL,
         hdp DECIMAL(10, 2),
         max_stake DECIMAL(10, 2),
-        status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'won', 'lost', 'void', 'pending_result')),
+        status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'won', 'lost', 'void', 'pending_result')),
         result TEXT CHECK (result IN ('won', 'lost', 'void')),
         resolved_at TIMESTAMPTZ,
         stake_amount DECIMAL(10, 2),

@@ -23,6 +23,34 @@ export default function ValueBetCard({
   const [useCustomStake, setUseCustomStake] = useState(false)
   const [customStake, setCustomStake] = useState('')
 
+  const normalizedMarket = (bet.market_name ?? '').toLowerCase()
+  const normalizedSide = (bet.bet_side ?? '').toLowerCase()
+  const isSpreadMarket =
+    normalizedMarket.includes('handicap') ||
+    normalizedMarket.includes('spread') ||
+    normalizedMarket.includes('asian handicap')
+
+  const formatHandicap = (value: number | null | undefined) => {
+    if (value == null || Number.isNaN(value)) return '—'
+    return `${value > 0 ? '+' : ''}${value}`
+  }
+
+  const homeHandicap = isSpreadMarket
+    ? normalizedSide === 'away'
+      ? bet.hdp != null
+        ? bet.hdp * -1
+        : null
+      : bet.hdp ?? null
+    : null
+
+  const awayHandicap = isSpreadMarket
+    ? normalizedSide === 'away'
+      ? bet.hdp ?? null
+      : bet.hdp != null
+      ? bet.hdp * -1
+      : null
+    : null
+
   const displayEv = bet.expected_value - 100
   const formatEv = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
   const kelly = calculateKelly(
@@ -127,8 +155,10 @@ export default function ValueBetCard({
         {/* Cabeçalho */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-100 leading-tight truncate">
-              {bet.home_team} vs {bet.away_team}
+            <p className="text-sm font-semibold text-gray-100 leading-tight">
+              {bet.home_team}
+              {isSpreadMarket ? ` [${formatHandicap(homeHandicap)}]` : ''} vs {bet.away_team}
+              {isSpreadMarket ? ` [${formatHandicap(awayHandicap)}]` : ''}
             </p>
             <p className="text-xs text-gray-500 mt-0.5 whitespace-normal break-words">
               {bet.league} · {dateLabel}
@@ -146,7 +176,7 @@ export default function ValueBetCard({
           {/* Translated market name, with handicap if present */}
           <span className="px-2 py-0.5 bg-gray-800 rounded text-xs text-gray-300 font-medium">
             {translatedMarket || rawMarket}
-            {bet.hdp != null ? ` (${bet.hdp > 0 ? '+' : ''}${bet.hdp})` : ''}
+            {!isSpreadMarket && bet.hdp != null ? ` (${bet.hdp > 0 ? '+' : ''}${bet.hdp})` : ''}
           </span>
           {/* Translated bet side */}
           <span className="px-2 py-0.5 bg-blue-900/30 border border-blue-800/40 rounded text-xs text-blue-300 font-medium">

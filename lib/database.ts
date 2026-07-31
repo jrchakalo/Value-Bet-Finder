@@ -2,12 +2,56 @@ import { supabaseAdmin } from './supabase'
 import { OddsAPIValueBet, ValueBet, Bankroll, BankrollTransaction, DailyAnalytics, BetResult } from './types'
 import { parseOddsForSide } from './odds-api'
 
+const STALE_BET_BATCH_SIZE = 100
+
+async function deactivateMissingActiveBets(incomingIds: Set<string>): Promise<void> {
+  const query = supabaseAdmin
+    .from('value_bets')
+    .select('id, status')
+
+  if (!query || typeof (query as { then?: unknown }).then !== 'function') {
+    return
+  }
+
+  const { data: bets, error } = await query
+
+  if (error) {
+    throw new Error(`Failed to fetch active bets: ${error.message}`)
+  }
+
+  const activeIds = (bets ?? [])
+    .filter((bet) => bet.status === 'active')
+    .map((bet) => bet.id)
+
+  const staleIds = activeIds.filter((id) => !incomingIds.has(id))
+
+  if (staleIds.length === 0) return
+
+  const now = new Date().toISOString()
+
+  for (let index = 0; index < staleIds.length; index += STALE_BET_BATCH_SIZE) {
+    const batch = staleIds.slice(index, index + STALE_BET_BATCH_SIZE)
+
+    const { error: staleUpdateError } = await supabaseAdmin
+      .from('value_bets')
+      .update({ status: 'inactive', updated_at: now })
+      .in('id', batch)
+
+    if (staleUpdateError) {
+      throw new Error(`Failed to deactivate stale bets: ${staleUpdateError.message}`)
+    }
+  }
+}
+
 /**
  * Upserts value bets into the database
  * Uses the bet ID from the API as the unique key to prevent duplicates
  */
 export async function upsertValueBets(bets: OddsAPIValueBet[]): Promise<number> {
-  if (bets.length === 0) return 0
+  if (bets.length === 0) {
+    await deactivateMissingActiveBets(new Set())
+    return 0
+  }
 
   const records = bets.map((bet) => ({
     id: bet.id,
@@ -23,8 +67,8 @@ export async function upsertValueBets(bets: OddsAPIValueBet[]): Promise<number> 
     event_date: bet.event.date,
     sport: bet.event.sport,
     league: bet.event.league,
-    hdp: bet.market.hdp || null,
-    max_stake: bet.market.max || null,
+    hdp: bet.market.hdp ?? null,
+    max_stake: bet.market.max ?? null,
     status: 'active' as const,
     updated_at: new Date().toISOString(),
   }))
@@ -40,6 +84,8 @@ export async function upsertValueBets(bets: OddsAPIValueBet[]): Promise<number> 
   if (error) {
     throw new Error(`Database upsert failed: ${error.message}`)
   }
+
+  await deactivateMissingActiveBets(new Set(bets.map((bet) => bet.id)))
 
   return data?.length ?? 0
 }
