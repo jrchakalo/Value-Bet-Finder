@@ -21,11 +21,15 @@
 [✨ Funcionalidades](#-funcionalidades) ·
 [🏗️ Arquitetura](#️-arquitetura) ·
 [🚀 Rodando localmente](#-rodando-localmente) ·
-[⚠️ Disclaimer](#️-aviso-importante--projeto-de-estudo)
+[📚 Índice](#-índice)
 
 </div>
 
 ---
+
+> [!WARNING]
+> **Apostas de quota fixa estão proibidas no Brasil.**
+> A Medida Provisória nº 1.394/2026, de 25 de setembro de 2026, proibiu a exploração, oferta, intermediação e publicidade das apostas de quota fixa (as “bets”) no país. As plataformas deixaram de funcionar em 6 de outubro de 2026. A MP está em vigor e aguarda apreciação do Congresso Nacional. Este repositório é um estudo técnico e **não opera, intermedia, divulga ou promove apostas**.
 
 ## 📌 Sobre o projeto
 
@@ -33,18 +37,43 @@ O **Value Bet Finder (VBF)** é uma aplicação full-stack single-admin, com uma
 
 A aplicação consome o endpoint `/v3/value-bets` do [Odds-API.io](https://odds-api.io/) para duas casas de apostas (Superbet e Bet7k), persiste as oportunidades no Supabase, calcula o stake sugerido com o **critério de Kelly fracionado** e permite acompanhar banca, resultados e métricas de desempenho ao longo do tempo.
 
-> **Acesso:** a demo é protegida por login e possui dois perfis:
+> **Acesso de demonstração**
 >
 > | Perfil | Usuário | Senha | Permissões |
 > | --- | --- | --- | --- |
 > | Demonstração | `demo` | `demo-value-bets` | Somente leitura |
 > | Administrador | `ADMIN_USERNAME` | `ADMIN_PASSWORD` | Completo |
 >
-> A conta `demo` é habilitada por padrão e permite navegar pelo radar, histórico, banca e analytics. Ela **não** pode forçar buscas, editar a banca ou resolver apostas — as rotas de escrita retornam `403` para esse perfil. Para alterar as credenciais, defina `DEMO_USERNAME`/`DEMO_PASSWORD`; para desativar, use `DEMO_ENABLED=false`.
+> A conta `demo` é habilitada por padrão e permite navegar pelo radar, histórico, banca e analytics. Ela **não** pode forçar buscas, editar a banca ou resolver apostas — as rotas de escrita retornam `403` para esse perfil. No modo demo, a interface também não inicia polling automático nem exibe os botões de atualização manual e de busca forçada. Para alterar as credenciais, defina `DEMO_USERNAME`/`DEMO_PASSWORD`; para desativar, use `DEMO_ENABLED=false`.
 >
 > Para testar localmente como administrador, defina `ADMIN_USERNAME` e `ADMIN_PASSWORD` no seu `.env`.
 
 **Domínio canônico:** [valuebetfinder.vercel.app](https://valuebetfinder.vercel.app)
+
+<p align="center">
+  <img src="docs/radar-demo.png" alt="Tela do Radar no modo demonstração" width="900" />
+</p>
+
+## 📚 Índice
+
+- [Sobre o projeto](#-sobre-o-projeto)
+- [Funcionalidades](#-funcionalidades)
+- [O que este projeto demonstra](#-o-que-este-projeto-demonstra)
+- [Stack e ferramentas](#️-stack-e-ferramentas)
+- [Arquitetura](#️-arquitetura)
+- [A parte estatística](#-a-parte-estatística)
+- [Segurança](#-segurança)
+- [Rodando localmente](#-rodando-localmente)
+- [Deploy na Vercel](#️-deploy-na-vercel)
+- [Banco de dados](#️-banco-de-dados)
+- [API](#-api)
+- [Estrutura do projeto](#-estrutura-do-projeto)
+- [Testes](#-testes)
+- [Decisões técnicas e trade-offs](#-decisões-técnicas-e-trade-offs)
+- [Possíveis melhorias futuras](#-possíveis-melhorias-futuras)
+- [Aviso importante](#️-aviso-importante--projeto-de-estudo)
+- [Autor](#autor)
+- [Licença](#-licença)
 
 ---
 
@@ -59,16 +88,15 @@ A aplicação consome o endpoint `/v3/value-bets` do [Odds-API.io](https://odds-
 - Cálculo de stake recomendado, lucro potencial e stake máxima informada pela casa.
 - Tradução de mercados e lados de aposta para português (ex.: `ML` → `Resultado Final`, `over` → `Acima`).
 - Exibição de handicap quando o mercado é de spread/handicap.
-- Atualização automática da lista a cada 60 segundos.
-- Botão de **busca manual** para forçar um ciclo de ingestão.
+- Atualização automática da lista a cada 60 segundos **somente para o administrador**; o modo demo não faz polling.
+- Botão de **busca manual** para forçar um ciclo de ingestão — visível apenas para o administrador.
 - Badge de status do worker com última execução, erros e total de apostas salvas.
 
 ### Gestão de banca
 
-- Banca editável com validação de valor positivo.
-- Registro de transações (`deposit`, `withdrawal`, `win`, `loss`, `adjustment`).
+- Banca editável com validação de valor positivo — restrito ao administrador.
+- Registro auditável de transações no banco (`deposit`, `withdrawal`, `win`, `loss`, `adjustment`).
 - Atualização automática da banca ao resolver uma aposta.
-- Histórico de saldo após cada transação.
 
 ### Histórico e analytics
 
@@ -76,12 +104,13 @@ A aplicação consome o endpoint `/v3/value-bets` do [Odds-API.io](https://odds-
 - Gráfico de **lucro/prejuízo acumulado** em SVG.
 - Tabela diária com apostas, acertos, taxa, valor apostado, P/L e EV.
 - Aba com todas as apostas e filtros por status (`won`, `lost`, `void`, `pending_result`).
-- Resolução manual de apostas: **ganhou**, **perdeu** ou **void**.
+- Resolução manual de apostas: **ganhou**, **perdeu** ou **void** — restrita ao administrador.
 
 ### Ingestão e operação
 
 - Worker Node.js independente com `node-cron` para atualizações a cada 40 segundos.
-- Endpoint `/api/cron/update` para execução em ambientes serverless (Vercel Cron, GitHub Actions, cron externo etc.).
+- Endpoint `/api/cron/update` para execução em ambientes serverless, protegido por segredo.
+- **Cron job externo no [cron-job.org](https://cron-job.org) mantém a ingestão ativa em produção.**
 - Rate limit de 90 segundos no endpoint de cron para proteger a cota da API.
 - Upsert idempotente por `id` da value bet.
 - Desativação automática de apostas que desapareceram do feed do provedor.
@@ -92,7 +121,9 @@ A aplicação consome o endpoint `/v3/value-bets` do [Odds-API.io](https://odds-
 - Login com Auth.js/NextAuth v5 (estratégia JWT, sessão de 24 horas).
 - Dois perfis: administrador (variáveis de ambiente) e demonstração somente leitura.
 - Escritas bloqueadas no servidor para o perfil demo (`403`), não apenas escondidas na interface.
-- Rotas de API protegidas por sessão.
+- Modo demo sem polling e sem botões de atualização manual ou busca forçada.
+- Endpoint de cron autorizado apenas pelo `CRON_SECRET`, com comparação timing-safe; sessão de usuário não autoriza ingestão.
+- Rotas de dados protegidas por sessão.
 - Validação de payloads com Zod.
 - Row Level Security (RLS) habilitado no Supabase.
 - Chave `service_role` usada apenas no servidor.
@@ -104,14 +135,14 @@ A aplicação consome o endpoint `/v3/value-bets` do [Odds-API.io](https://odds-
 
 Este repositório foi organizado para evidenciar competências técnicas além da interface:
 
-- **Full-stack com Next.js App Router:** Server Components, layouts aninhados, Route Handlers, middleware de autenticação e metadata dinâmica.
+- **Full-stack com Next.js App Router:** Server Components, layouts aninhados, Route Handlers, middleware de autenticação e metadata por rota.
 - **TypeScript em modo estrito:** tipos compartilhados entre frontend, API, banco e worker.
 - **Modelagem relacional:** tabelas normalizadas, índices, chaves estrangeiras, constraints, seed e migrations idempotentes.
 - **Integração com API de terceiros:** cliente HTTP com timeout, tratamento de erros, normalização de payload e estratégia de rate limit.
 - **Estatística aplicada:** probabilidade implícita, expected value (EV), critério de Kelly fracionado, ROI, taxa de acerto e P/L acumulado.
-- **Segurança:** autenticação JWT, segregação de chaves, RLS, validação de entrada, endpoint de cron com segredo e ausência de segredos no repositório.
-- **Testes automatizados:** Vitest + Testing Library, com testes de cálculo, parsing, mapeamento de banco, lógica de worker e componentes.
-- **DevOps:** deploy na Vercel, banco no Supabase, worker em processo separado e execução via cron.
+- **Segurança:** autenticação JWT, autorização por perfil, segregação de chaves, RLS, validação de entrada, endpoint de cron com segredo e ausência de segredos no repositório.
+- **Testes automatizados:** Vitest + Testing Library, com testes de cálculo, parsing, mapeamento de banco, lógica de worker, autorização de rotas e componentes.
+- **DevOps:** deploy na Vercel, banco no Supabase, worker em processo separado e cron externo no cron-job.org.
 - **Documentação:** README detalhado, licença MIT, política de segurança, schema SQL e migrations versionadas.
 - **Produto e UX:** fluxo completo de descoberta → decisão → registro → resolução → análise, com estados de loading, erro e vazio.
 
@@ -126,7 +157,7 @@ Este repositório foi organizado para evidenciar competências técnicas além d
 | **Banco de dados** | Supabase (PostgreSQL), SQL, RLS, migrations versionadas |
 | **Ingestão de dados** | Odds-API.io, Axios, Node.js, node-cron |
 | **Testes** | Vitest, Testing Library, jsdom |
-| **Deploy** | Vercel (aplicação) + Supabase (banco); worker opcional em VPS, Render, Railway ou Fly.io |
+| **Deploy** | Vercel (aplicação), Supabase (banco) e cron-job.org (agendamento) |
 | **Qualidade** | ESLint, TypeScript strict, `npm audit`, Vitest coverage |
 
 ### Dependências principais
@@ -155,7 +186,7 @@ flowchart LR
   W[Worker Node.js<br/>node-cron] -->|GET /v3/value-bets| O[Odds-API.io]
   W -->|upsert / desativação| DB
 
-  C[Vercel Cron<br/>ou cron externo] -->|Bearer CRON_SECRET| CRON[/api/cron/update]
+  C[Cron-job.org<br/>ou Vercel Cron] -->|Bearer CRON_SECRET| CRON["/api/cron/update"]
   CRON -->|GET /v3/value-bets| O
   CRON -->|upsert / desativação| DB
 
@@ -174,7 +205,7 @@ flowchart LR
 
 ### Por que um worker separado?
 
-O worker precisa rodar continuamente a cada 40 segundos. Esse modelo não é adequado para funções serverless de vida curta, então ele é mantido como um processo Node independente. Para deploy somente na Vercel, a alternativa é usar o endpoint `/api/cron/update` com um agendador externo ou Vercel Cron.
+O worker precisa rodar continuamente a cada 40 segundos. Esse modelo não é adequado para funções serverless de vida curta, então ele é mantido como um processo Node independente. Para deploy somente na Vercel, a alternativa é usar o endpoint `/api/cron/update` com um agendador externo — em produção, o projeto usa o **cron-job.org**.
 
 ---
 
@@ -227,9 +258,11 @@ O repositório passou por uma revisão de segurança antes de se tornar público
 - `.env` e variações estão no `.gitignore`; o arquivo versionado é somente `.env.example`.
 - A chave `SUPABASE_SERVICE_ROLE_KEY` é usada **exclusivamente no servidor** (Route Handlers e worker), nunca no browser.
 - O Supabase tem **RLS habilitado** em todas as tabelas. Não há policies para `anon` ou `authenticated`; o acesso ocorre via `service_role`, que bypassa RLS e é mantido no servidor.
-- O endpoint `/api/cron/update` exige `Authorization: Bearer <CRON_SECRET>` e aplica rate limit de 90 segundos.
+- O endpoint `/api/cron/update` exige `Authorization: Bearer <CRON_SECRET>`, compara o segredo em tempo constante (timing-safe) e aplica rate limit de 90 segundos.
+- **Sessão de usuário não autoriza o cron:** nem admin, nem demo conseguem disparar uma ingestão apenas por estar logados. O segredo é server-side e nunca chega ao browser.
 - As rotas de dados exigem sessão autenticada.
 - O perfil `demo` é somente leitura: `/api/bets` (POST), `/api/bets/resolve` e `/api/bankroll` (PUT) retornam `403` para ele.
+- O modo demo não inicia polling automático nem exibe os botões de atualização manual e de busca forçada.
 - Payloads de entrada são validados com Zod.
 - Dependências de produção foram atualizadas para versões com correções de segurança. Rode `npm audit --omit=dev` antes de cada deploy.
 
@@ -276,6 +309,21 @@ cp .env.example .env
 
 Preencha o `.env` com os valores do seu projeto Supabase, da Odds-API e das credenciais de administrador.
 
+| Variável | Obrigatória | Uso |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Sim | URL do projeto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Sim | Chave anon (respeita RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Sim | Chave service role, somente no servidor |
+| `ODDS_API_KEY` | Sim | Chave da Odds-API.io |
+| `NEXTAUTH_SECRET` | Sim | Segredo do Auth.js |
+| `NEXTAUTH_URL` | Sim | `http://localhost:3000` ou URL de produção |
+| `ADMIN_USERNAME` | Sim | Usuário administrador |
+| `ADMIN_PASSWORD` | Sim | Senha forte do administrador |
+| `DEMO_ENABLED` | Não | `true` por padrão; use `false` para desativar a demo |
+| `DEMO_USERNAME` | Não | Padrão: `demo` |
+| `DEMO_PASSWORD` | Não | Padrão: `demo-value-bets` |
+| `CRON_SECRET` | Para cron | Segredo do endpoint `/api/cron/update` |
+
 ### 3. Prepare o banco
 
 **Opção A — Supabase CLI (recomendado):**
@@ -310,7 +358,7 @@ npm run worker
 npm run dev:all
 ```
 
-Acesse [http://localhost:3000](http://localhost:3000) e faça login com `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
+Acesse [http://localhost:3000](http://localhost:3000) e faça login com `ADMIN_USERNAME` / `ADMIN_PASSWORD` ou com a conta demo `demo` / `demo-value-bets`.
 
 ### 5. Testes e qualidade
 
@@ -328,20 +376,7 @@ npm run build           # build de produção
 
 1. Importe o repositório na Vercel.
 2. O framework é detectado automaticamente como **Next.js**.
-3. Configure as variáveis de ambiente do projeto:
-
-| Variável | Valor |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anon do Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | Chave service role (server-side) |
-| `ODDS_API_KEY` | Chave da Odds-API |
-| `NEXTAUTH_SECRET` | Segredo gerado com `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | `https://valuebetfinder.vercel.app` |
-| `ADMIN_USERNAME` | Usuário administrador |
-| `ADMIN_PASSWORD` | Senha forte do administrador |
-| `CRON_SECRET` | Segredo do endpoint de cron |
-
+3. Configure as variáveis de ambiente da tabela de [Rodando localmente](#-rodando-localmente). Em produção, use `NEXTAUTH_URL=https://valuebetfinder.vercel.app`.
 4. Rode a migration no Supabase antes do primeiro deploy:
    ```bash
    npx supabase link --project-ref <SEU_PROJECT_REF>
@@ -351,9 +386,23 @@ npm run build           # build de produção
 
 ### Ingestão em produção
 
-O worker standalone **não roda dentro da Vercel**. Escolha uma das opções:
+O worker standalone **não roda dentro da Vercel**. Em produção, a ingestão é agendada no **[cron-job.org](https://cron-job.org)**:
 
-- **Vercel Cron / cron externo:** agende uma chamada `GET https://valuebetfinder.vercel.app/api/cron/update` com o header `Authorization: Bearer <CRON_SECRET>`. Ajuste a frequência ao limite do seu plano.
+- **URL:** `https://valuebetfinder.vercel.app/api/cron/update`
+- **Método:** `GET`
+- **Header:** `Authorization: Bearer <CRON_SECRET>`
+- **Frequência:** definida no painel do cron-job.org.
+
+O endpoint foi desenhado para ser chamado apenas por um agendador confiável:
+
+- rejeita requisições sem o segredo (`401`);
+- não aceita sessão de usuário (admin ou demo) como autorização;
+- aplica rate limit de 90 segundos com base na última execução bem-sucedida;
+- nunca é chamado pelo frontend.
+
+Alternativas:
+
+- **Vercel Cron:** agende uma chamada `GET /api/cron/update`; a Vercel envia o header `Authorization: Bearer <CRON_SECRET>` automaticamente quando a variável existe.
 - **Worker dedicado:** faça deploy do processo `npm run worker` em um serviço que suporte processos de longa duração (Render, Railway, Fly.io, VPS etc.) com as mesmas variáveis de ambiente.
 
 Exemplo de configuração de Vercel Cron (opcional):
@@ -409,15 +458,15 @@ A função `public.increment_total_fetches()` incrementa atomicamente o contador
 
 | Método | Rota | Autenticação | Descrição |
 | --- | --- | --- | --- |
-| `GET` | `/api/bets` | Sessão | Lista as value bets ativas. |
-| `POST` | `/api/bets` | Sessão | Força um ciclo de ingestão e retorna as apostas ativas. |
+| `GET` | `/api/bets` | Sessão | Lista as value bets ativas (leitura permitida ao demo). |
+| `POST` | `/api/bets` | Sessão admin | Força um ciclo de ingestão; `403` para o demo. |
 | `GET` | `/api/bets/history` | Sessão | Lista as apostas mais recentes (até 500). |
-| `POST` | `/api/bets/resolve` | Sessão | Resolve uma aposta e atualiza a banca. |
+| `POST` | `/api/bets/resolve` | Sessão admin | Resolve uma aposta e atualiza a banca; `403` para o demo. |
 | `GET` | `/api/bankroll` | Sessão | Retorna a banca atual. |
-| `PUT` | `/api/bankroll` | Sessão | Atualiza a banca e registra uma transação. |
+| `PUT` | `/api/bankroll` | Sessão admin | Atualiza a banca e registra uma transação; `403` para o demo. |
 | `GET` | `/api/analytics` | Sessão | Retorna analytics diários. |
 | `GET` | `/api/worker-status` | Sessão | Retorna o status do worker. |
-| `GET` | `/api/cron/update` | `Bearer CRON_SECRET` | Executa um ciclo de ingestão com rate limit. |
+| `GET` | `/api/cron/update` | `Bearer CRON_SECRET` | Executa um ciclo de ingestão com rate limit; `401` sem o segredo. |
 | `*` | `/api/auth/[...nextauth]` | Auth.js | Rotas de autenticação. |
 
 ---
@@ -430,16 +479,20 @@ A função `public.increment_total_fetches()` incrementa atomicamente o contador
 │   ├── (dashboard)/          # Área autenticada (radar, histórico)
 │   ├── api/                  # Route Handlers (bets, banca, analytics, cron)
 │   ├── login/                # Tela de login
+│   ├── icon.svg              # Favicon
 │   ├── layout.tsx            # Layout raiz e metadata
 │   └── globals.css           # Tailwind e estilos globais
 ├── components/               # Componentes de UI (radar, cards, banca, nav)
 ├── lib/
+│   ├── auth-credentials.ts   # Credenciais e perfis admin/demo
+│   ├── permissions.ts        # Helpers de autorização (isDemoRole/canWrite)
 │   ├── database.ts           # Acesso ao Supabase e regras de persistência
 │   ├── kelly.ts              # Cálculos estatísticos e formatação
 │   ├── odds-api.ts           # Cliente da Odds-API
 │   ├── supabase.ts           # Clients Supabase (server-side)
 │   ├── translations.ts       # Tradução de mercados/lados para PT-BR
 │   └── types.ts              # Tipos compartilhados
+├── types/next-auth.d.ts      # Augmentation de sessão/JWT com role
 ├── worker/index.ts           # Worker de ingestão com node-cron
 ├── scripts/schema.sql        # Schema para execução manual
 ├── supabase/migrations/      # Migrations versionadas
@@ -459,8 +512,9 @@ A suíte cobre as partes mais críticas do projeto:
 - **Odds-API:** parsing de odds por lado, normalização de casos e tratamento de resposta inválida.
 - **Banco:** mapeamento de campos, upsert, erros e constraints de rate limit.
 - **Worker:** intervalo de 40 segundos, limite de requisições e tratamento de falhas.
-- **Autenticação:** validação de credenciais e configuração de sessão.
-- **Componentes:** banca e card de value bet.
+- **Autenticação:** credenciais admin/demo, perfis e configuração de sessão.
+- **Autorização de rotas:** `401` sem sessão, `403` para o demo, `200` para o admin e cron sem segredo.
+- **Componentes:** banca, card de value bet e estados somente leitura.
 
 Os testes usam mocks e não fazem chamadas reais à Odds-API nem ao Supabase.
 
@@ -478,22 +532,26 @@ npm run test:coverage
 - **Kelly fracionado:** reduz a volatilidade e o risco de ruína em comparação ao Kelly cheio, ao custo de menor crescimento esperado.
 - **Worker separado + endpoint de cron:** atende tanto a um processo de longa duração quanto a um deploy serverless.
 - **Perfis de acesso:** um administrador com permissões completas e uma conta de demonstração somente leitura. A restrição é aplicada no servidor, então esconder botões na UI é apenas uma camada de experiência, não a única proteção.
+- **Demo sem polling:** evita que visitantes gerem tráfego repetido e mantém a demo previsível e barata de operar.
+- **Cron com segredo, não com sessão:** um agendador externo não tem cookie de usuário; o segredo server-side é o mecanismo correto e não expõe a rota a visitantes logados.
 - **Single-admin:** simplifica autenticação e autorização, mantendo o foco do estudo em ingestão, estatística e produto. Uma evolução natural é multi-user com Supabase Auth e RLS por usuário.
 - **SQL versionado:** migrations idempotentes facilitam reproduzir o ambiente e revisar mudanças de schema.
 
 ---
 
-## 🗺️ Roadmap
+## 💡 Possíveis melhorias futuras
 
-- [ ] Multi-user com Supabase Auth e policies de RLS por usuário.
-- [ ] Suporte a mais casas de apostas, esportes e mercados.
-- [ ] Atualização em tempo real via WebSocket.
-- [ ] Resolução automática de apostas com dados do provedor.
-- [ ] CI com GitHub Actions (lint, typecheck, testes e build).
-- [ ] Testes end-to-end com Playwright.
-- [ ] Observabilidade com logs estruturados e métricas.
-- [ ] Internacionalização PT-BR/EN.
-- [ ] Dashboard de drawdown, banca simulada e cenários de risco.
+O projeto está **concluído como estudo de portfólio e não possui roadmap ativo**. As ideias abaixo são apenas direções possíveis para quem quiser explorar o código — não são compromissos de implementação:
+
+- Multi-user com Supabase Auth e policies de RLS por usuário.
+- Suporte a mais casas de apostas, esportes e mercados.
+- Atualização em tempo real via WebSocket.
+- Resolução automática de apostas com dados do provedor.
+- CI com GitHub Actions (lint, typecheck, testes e build).
+- Testes end-to-end com Playwright.
+- Observabilidade com logs estruturados e métricas.
+- Internacionalização PT-BR/EN.
+- Dashboard de drawdown, banca simulada e cenários de risco.
 
 ---
 
@@ -501,16 +559,21 @@ npm run test:coverage
 
 > **Este projeto foi desenvolvido exclusivamente para fins educacionais, de estudo e de portfólio.** Ele não é um produto comercial, não é uma recomendação de aposta, não é consultoria financeira e não deve ser usado como única fonte para decisões de apostas.
 
-O Value Bet Finder demonstra conceitos de engenharia de software, integração de APIs, modelagem de dados, autenticação, estatística aplicada e visualização. A parte estatística (EV, probabilidade implícita, critério de Kelly, ROI e taxa de acerto) é implementada para fins didáticos e depende de dados de terceiros. Os valores de EV e as sugestões de stake são **estimativas**; não há garantia de lucro, de acerto ou de que qualquer estratégia será rentável.
+### Situação legal no Brasil
 
-Apostas esportivas envolvem **risco real de perda financeira**. Resultados passados não garantem resultados futuros, e a variância pode produzir sequências longas de perdas mesmo em cenários com EV positivo. Se você decidir apostar:
+A legislação brasileira sobre apostas mudou em 2026. A **Medida Provisória nº 1.394/2026**, de 25 de setembro de 2026, proibiu a **exploração, oferta, intermediação e publicidade** das apostas de quota fixa (as “bets”) no país, abrangendo apostas esportivas e jogos online, em ambientes físicos e virtuais. As plataformas deixaram de funcionar em **6 de outubro de 2026**, e as autorizações existentes foram extintas.
 
-- aposte apenas valores que você pode perder;
-- defina limites de tempo e de dinheiro;
-- não tente recuperar perdas;
-- procure ajuda se o jogo deixar de ser diversão.
+A MP tem força de lei imediata e está em análise pelo Congresso Nacional, que tem prazo constitucional para apreciá-la. **Situação verificada em 6 de novembro de 2026.** Como a norma pode mudar, consulte sempre as fontes oficiais antes de usar este projeto.
 
-**Proibido para menores de 18 anos.** Cada pessoa é responsável por verificar e cumprir a legislação do seu país. No Brasil, apostas esportivas são regulamentadas; este repositório não opera, intermedeia nem promove casas de apostas.
+- [Medida Provisória nº 1.394/2026 — Congresso Nacional](https://www.congressonacional.leg.br/materias/medidas-provisorias/-/mpv/175871)
+- [Ministério da Saúde — anúncio da MP](https://www.gov.br/saude/pt-br/assuntos/noticias/2026/setembro/presidente-lula-assina-medida-provisoria-que-proibe-as-bets-no-brasil)
+- [Agência Brasil — proibição e devolução de saldos](https://agenciabrasil.ebc.com.br/economia/noticia/2026-09/mp-proibe-bets-no-brasil-e-determina-devolucao-de-saldo-ao-apostador)
+
+O VBF demonstra conceitos de engenharia de software, integração de APIs, modelagem de dados, autenticação, estatística aplicada e visualização. A parte estatística (EV, probabilidade implícita, critério de Kelly, ROI e taxa de acerto) é implementada para fins didáticos e depende de dados de terceiros. Os valores de EV e as sugestões de stake são **estimativas**; não há garantia de lucro, de acerto ou de que qualquer estratégia será rentável.
+
+Apostas esportivas envolvem **risco real de perda financeira** e, no Brasil, a modalidade de quota fixa está proibida por lei. Resultados passados não garantem resultados futuros, e a variância pode produzir sequências longas de perdas mesmo em cenários com EV positivo. Este repositório **não opera, intermedeia, divulga ou promove** casas de apostas e não deve ser usado para contornar a legislação vigente.
+
+**Proibido para menores de 18 anos.** Cada pessoa é responsável por verificar e cumprir a legislação do seu país.
 
 O projeto não é afiliado, patrocinado ou endossado pela Odds-API.io, Superbet, Bet7k ou qualquer casa de apostas. Marcas e nomes pertencem aos seus respectivos proprietários. Os dados exibidos vêm de uma API de terceiros e podem estar atrasados, incompletos ou incorretos.
 
@@ -539,11 +602,3 @@ O software é fornecido **“como está”**, sem garantias de qualquer tipo, so
 ## 📄 Licença
 
 Distribuído sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
----
-
-<div align="center">
-
-Feito para estudar engenharia de software, dados e estatística — não para incentivar apostas.
-
-</div>

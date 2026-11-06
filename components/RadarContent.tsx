@@ -9,7 +9,7 @@ import LoadingSpinner from './LoadingSpinner'
 import { ValueBet } from '@/lib/types'
 
 export default function RadarContent() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const isDemo = session?.user?.role === 'demo'
   const [bets, setBets] = useState<ValueBet[]>([])
   const [bankroll, setBankroll] = useState<number>(1000)
@@ -43,11 +43,17 @@ export default function RadarContent() {
     }
   }, [])
 
+  // Initial read from the internal API (GET only). The demo account never
+  // starts the polling interval below, so it cannot generate repeated requests.
   useEffect(() => {
     fetchBets()
+  }, [fetchBets])
+
+  useEffect(() => {
+    if (isDemo || status === 'loading') return
     const interval = setInterval(fetchBets, 60_000)
     return () => clearInterval(interval)
-  }, [fetchBets])
+  }, [isDemo, status, fetchBets])
 
   async function handleForceFetch() {
     setForceFetching(true)
@@ -124,7 +130,7 @@ export default function RadarContent() {
             <h1 className="text-xl font-bold text-white">
               <span className="text-emerald-400">⚡</span> Radar
             </h1>
-            <WorkerStatusBadge />
+            <WorkerStatusBadge readOnly={isDemo} />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {isDemo && (
@@ -137,12 +143,14 @@ export default function RadarContent() {
                 Atualizado às {lastUpdated.toLocaleTimeString('pt-BR')}
               </span>
             )}
-            <button
-              onClick={fetchBets}
-              className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs transition-colors"
-            >
-              ↻ Atualizar
-            </button>
+            {!isDemo && (
+              <button
+                onClick={fetchBets}
+                className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs transition-colors"
+              >
+                ↻ Atualizar
+              </button>
+            )}
             {!isDemo && (
               <button
                 onClick={handleForceFetch}
@@ -285,12 +293,14 @@ export default function RadarContent() {
         {error && (
           <div className="flex items-center gap-2 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
             <span className="text-red-400 text-sm">⚠ {error}</span>
-            <button
-              onClick={fetchBets}
-              className="ml-auto text-xs text-gray-400 hover:text-gray-200 underline"
-            >
-              Tentar novamente
-            </button>
+            {!isDemo && (
+              <button
+                onClick={fetchBets}
+                className="ml-auto text-xs text-gray-400 hover:text-gray-200 underline"
+              >
+                Tentar novamente
+              </button>
+            )}
           </div>
         )}
 

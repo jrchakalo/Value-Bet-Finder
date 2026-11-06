@@ -74,17 +74,10 @@ describe('ValueBetCard Component', () => {
     expect(screen.queryByText(/R\$\s?0,00/)).toBeNull()
   })
 
-  it('should render the bookmaker link when href is provided', () => {
+  it('should not render outbound links to bookmakers', () => {
     render(<ValueBetCard bet={mockBet} bankroll={1000} />)
-    const link = screen.getByTitle('Abrir na casa de apostas')
-    expect(link).toBeDefined()
-    expect(link.getAttribute('href')).toBe('https://superbet.com/bet/123')
-  })
-
-  it('should not render the bookmaker link when href is null', () => {
-    const betWithoutHref = { ...mockBet, bookmaker_href: null }
-    render(<ValueBetCard bet={betWithoutHref} bankroll={1000} />)
     expect(screen.queryByTitle('Abrir na casa de apostas')).toBeNull()
+    expect(screen.queryByRole('link')).toBeNull()
   })
 
   it('should render Resolver Aposta button', () => {
@@ -130,7 +123,6 @@ describe('ValueBetCard Component', () => {
 
     expect(screen.getByText('Modo demonstração · somente leitura')).toBeDefined()
     expect(screen.queryByText('Resolver Aposta')).toBeNull()
-    // The external bookmaker link remains available as read-only data
-    expect(screen.getByTitle('Abrir na casa de apostas')).toBeDefined()
+    expect(screen.queryByRole('link')).toBeNull()
   })
 })

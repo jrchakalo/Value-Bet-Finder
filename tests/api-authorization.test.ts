@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const mocks = vi.hoisted(() => ({
@@ -26,6 +26,7 @@ vi.mock('@/lib/odds-api', () => ({
 import { POST as triggerFetch } from '../app/api/bets/route'
 import { POST as resolveBet } from '../app/api/bets/resolve/route'
 import { PUT as updateBankroll } from '../app/api/bankroll/route'
+import { GET as cronUpdate } from '../app/api/cron/update/route'
 
 function jsonRequest(url: string, method: string, body: unknown): NextRequest {
   return new NextRequest(url, {
@@ -118,5 +119,42 @@ describe('Write routes authorization', () => {
     const res = await triggerFetch()
     expect(res.status).toBe(401)
     expect(mocks.fetchAllTargetValueBets).not.toHaveBeenCalled()
+  })
+
+  describe('Cron endpoint authorization', () => {
+    const originalSecret = process.env.CRON_SECRET
+    const testSecret = 'test-cron-secret-0123456789'
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      process.env.CRON_SECRET = testSecret
+      // Even a valid admin session must never authorize the cron route.
+      mocks.auth.mockResolvedValue({ user: { name: 'admin', role: 'admin' } })
+    })
+
+    afterEach(() => {
+      if (originalSecret === undefined) delete process.env.CRON_SECRET
+      else process.env.CRON_SECRET = originalSecret
+    })
+
+    it('should reject a request without the Bearer secret', async () => {
+      const res = await cronUpdate(
+        new NextRequest('http://localhost/api/cron/update')
+      )
+
+      expect(res.status).toBe(401)
+      expect(mocks.fetchAllTargetValueBets).not.toHaveBeenCalled()
+    })
+
+    it('should reject a request with an invalid secret', async () => {
+      const res = await cronUpdate(
+        new NextRequest('http://localhost/api/cron/update', {
+          headers: { authorization: 'Bearer wrong-secret' },
+        })
+      )
+
+      expect(res.status).toBe(401)
+      expect(mocks.fetchAllTargetValueBets).not.toHaveBeenCalled()
+    })
   })
 })

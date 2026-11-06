@@ -228,41 +228,19 @@ export default function ValueBetCard({
 
         {/* Seção de resolução */}
         {readOnly ? (
-          <div className="flex gap-2 pt-1">
+          <div className="flex pt-1">
             <span className="flex-1 py-2 text-center bg-amber-500/5 border border-amber-500/20 text-amber-400/80 text-xs font-medium rounded-lg">
               Modo demonstração · somente leitura
             </span>
-            {bet.bookmaker_href && (
-              <a
-                href={bet.bookmaker_href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-600/40 text-blue-400 text-sm rounded-lg transition-colors"
-                title="Abrir na casa de apostas"
-              >
-                ↗
-              </a>
-            )}
           </div>
         ) : !showResolve ? (
-          <div className="flex gap-2 pt-1">
+          <div className="flex pt-1">
             <button
               onClick={() => setShowResolve(true)}
               className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors"
             >
               Resolver Aposta
             </button>
-            {bet.bookmaker_href && (
-              <a
-                href={bet.bookmaker_href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-600/40 text-blue-400 text-sm rounded-lg transition-colors"
-                title="Abrir na casa de apostas"
-              >
-                ↗
-              </a>
-            )}
           </div>
         ) : (
           <div className="space-y-2 pt-1 border-t border-gray-800">

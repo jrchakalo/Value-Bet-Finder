@@ -1,9 +1,29 @@
+import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchAllTargetValueBets } from '@/lib/odds-api'
 import { upsertValueBets, markStaleActiveBets } from '@/lib/database'
 import { supabaseAdmin } from '@/lib/supabase'
 
 const RATE_LIMIT_SECONDS = 90
+
+/**
+ * Compares the Authorization header with the configured cron secret without
+ * leaking timing information. A user session (admin or demo) is never enough
+ * to trigger this route: only the server-side secret authorizes an update.
+ */
+function isAuthorizedCronRequest(
+  authHeader: string | null,
+  cronSecret: string
+): boolean {
+  if (!authHeader) return false
+
+  const received = Buffer.from(authHeader)
+  const expected = Buffer.from(`Bearer ${cronSecret}`)
+
+  if (received.length !== expected.length) return false
+
+  return timingSafeEqual(received, expected)
+}
 
 /**
  * Reads the last successful fetch timestamp from worker_status.
@@ -79,9 +99,8 @@ export async function GET(req: NextRequest) {
   }
 
   const authHeader = req.headers.get('authorization')
-  const expectedHeader = `Bearer ${cronSecret}`
 
-  if (!authHeader || authHeader !== expectedHeader) {
+  if (!isAuthorizedCronRequest(authHeader, cronSecret)) {
     console.warn('[Cron] Unauthorized request — invalid or missing Authorization header')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

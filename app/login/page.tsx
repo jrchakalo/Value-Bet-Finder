@@ -132,9 +132,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <p className="text-center text-gray-700 text-xs mt-6">
-          Acesso educacional. Não é recomendação de aposta.
-        </p>
+        <div className="text-center text-gray-700 text-xs mt-6 space-y-1">
+          <p>Projeto educacional. Não é recomendação de aposta.</p>
+          <p>
+            Apostas de quota fixa estão proibidas no Brasil pela Medida Provisória
+            nº 1.394/2026.
+          </p>
+        </div>
       </div>
     </div>
   )

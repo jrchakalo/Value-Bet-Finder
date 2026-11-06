@@ -1,12 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { WorkerStatus } from '@/lib/types'
 
-export default function WorkerStatusBadge() {
+interface WorkerStatusBadgeProps {
+  readOnly?: boolean
+}
+
+export default function WorkerStatusBadge({ readOnly = false }: WorkerStatusBadgeProps) {
   const [status, setStatus] = useState<WorkerStatus | null>(null)
 
-  async function fetchStatus() {
+  const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/worker-status')
       const json = await res.json()
@@ -14,13 +18,17 @@ export default function WorkerStatusBadge() {
     } catch {
       // silencioso
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchStatus()
+  }, [fetchStatus])
+
+  useEffect(() => {
+    if (readOnly) return
     const interval = setInterval(fetchStatus, 30_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [readOnly, fetchStatus])
 
   if (!status) return null
 

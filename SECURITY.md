@@ -33,11 +33,14 @@ Você receberá um retorno assim que possível. Pedimos que não divulgue public
 - **Nunca** commite `.env`, chaves, tokens ou senhas reais.
 - A chave `SUPABASE_SERVICE_ROLE_KEY` deve existir apenas no servidor.
 - RLS deve permanecer habilitado em todas as tabelas do Supabase.
-- O endpoint `/api/cron/update` deve ser protegido pelo `CRON_SECRET`.
+- O endpoint `/api/cron/update` deve ser protegido pelo `CRON_SECRET`, com comparação timing-safe.
+- O endpoint de cron **não deve aceitar sessão de usuário** (admin ou demo) como autorização; apenas o segredo server-side.
 - Rotas de dados devem exigir sessão autenticada.
 - Rode `npm audit --omit=dev` antes de cada deploy e mantenha as dependências de produção atualizadas.
 - Use senhas fortes e exclusivas para `ADMIN_PASSWORD` e `CRON_SECRET`.
 - A conta `demo` é pública por design e deve permanecer **somente leitura**. Nunca reutilize nela a senha do administrador nem conceda permissões de escrita.
+- O modo demo não deve iniciar polling automático nem expor os botões de atualização manual e de busca forçada.
+- Em produção, o agendamento é feito no [cron-job.org](https://cron-job.org), que chama `/api/cron/update` com o header `Authorization: Bearer <CRON_SECRET>`.
 
 ## Boas práticas para quem for implantar
 

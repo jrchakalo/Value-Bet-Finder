@@ -5,7 +5,7 @@ import { SessionProvider } from './providers'
 export const metadata: Metadata = {
   title: 'Value Bet Finder | Radar de Value Bets',
   description:
-    'Plataforma para estudo de value bets, gestão de banca e análise de desempenho com o critério de Kelly.',
+    'Projeto educacional de radar de value bets, gestão de banca e análise de desempenho. Apostas de quota fixa estão proibidas no Brasil (MP 1.394/2026).',
   applicationName: 'Value Bet Finder',
   authors: [{ name: 'Júnior Silva', url: 'https://github.com/jrchakalo' }],
   keywords: [
@@ -16,9 +16,6 @@ export const metadata: Metadata = {
     'Next.js',
     'Supabase',
   ],
-  icons: {
-    icon: '/favicon.ico',
-  },
 }
 
 export default function RootLayout({
