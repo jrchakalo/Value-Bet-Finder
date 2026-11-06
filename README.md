@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="https://avatars.githubusercontent.com/jrchakalo?v=4" alt="Júnior Silva" width="115" />
-
 # Value Bet Finder (VBF)
 
 **Radar de value bets, gestão de banca e analytics — um projeto de estudo full-stack.**

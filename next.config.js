@@ -10,6 +10,10 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: ['node-cron'],
+  async rewrites() {
+    // Keep legacy /favicon.ico requests working without a binary icon file.
+    return [{ source: '/favicon.ico', destination: '/icon.svg' }]
+  },
 }
 
 module.exports = nextConfig
