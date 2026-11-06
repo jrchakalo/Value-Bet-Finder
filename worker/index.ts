@@ -76,7 +76,7 @@ async function runFetchCycle() {
 
 async function main() {
   console.log('╔════════════════════════════════════════╗')
-  console.log('║     Supp Worker - Value Bet Fetcher    ║')
+  console.log('║   Value Bet Finder - VBF Worker        ║')
   console.log('╚════════════════════════════════════════╝')
   console.log(`[Worker] 🚀 Starting with ${FETCH_INTERVAL_SECONDS}s interval`)
   console.log(`[Worker] 🎯 Targeting bookmakers: Superbet, Bet7k`)

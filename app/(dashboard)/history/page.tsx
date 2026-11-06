@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export const metadata = {
-  title: 'History | Supp',
-  description: 'Bet history and analytics',
+  title: 'Histórico | Value Bet Finder',
+  description: 'Histórico de apostas resolvidas e analytics de desempenho',
 }
 
 export default function HistoryPage() {

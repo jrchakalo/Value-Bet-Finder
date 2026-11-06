@@ -9,9 +9,7 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['node-cron'],
-  },
+  serverExternalPackages: ['node-cron'],
 }
 
 module.exports = nextConfig

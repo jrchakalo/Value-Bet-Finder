@@ -19,7 +19,7 @@ describe('BankrollWidget Component', () => {
     render(<BankrollWidget />)
 
     await waitFor(() => {
-      expect(screen.getByText('$1,500.00')).toBeDefined()
+      expect(screen.getByText(/R\$\s?1\.500,00/)).toBeDefined()
     })
   })
 
@@ -35,7 +35,7 @@ describe('BankrollWidget Component', () => {
     render(<BankrollWidget />)
 
     await waitFor(() => {
-      expect(screen.getByText('Edit')).toBeDefined()
+      expect(screen.getByText('Editar')).toBeDefined()
     })
   })
 
@@ -51,13 +51,13 @@ describe('BankrollWidget Component', () => {
     render(<BankrollWidget />)
 
     await waitFor(() => {
-      const editBtn = screen.getByText('Edit')
+      const editBtn = screen.getByText('Editar')
       editBtn.click()
     })
 
     await waitFor(() => {
-      expect(screen.getByText('Save')).toBeDefined()
-      expect(screen.getByText('Cancel')).toBeDefined()
+      expect(screen.getByText('Salvar')).toBeDefined()
+      expect(screen.getByText('Cancelar')).toBeDefined()
     })
   })
 
@@ -78,12 +78,12 @@ describe('BankrollWidget Component', () => {
     })
   })
 
-  it('should display Current Bankroll label', () => {
+  it('should display Banca label', () => {
     global.fetch = vi.fn().mockResolvedValueOnce({
       json: () => Promise.resolve({ success: false }),
     })
 
     render(<BankrollWidget />)
-    expect(screen.getByText('Current Bankroll')).toBeDefined()
+    expect(screen.getByText('Banca')).toBeDefined()
   })
 })

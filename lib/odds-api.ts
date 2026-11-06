@@ -2,7 +2,6 @@ import axios from 'axios'
 import { OddsAPIValueBet } from './types'
 
 const ODDS_API_BASE_URL = 'https://api.odds-api.io/v3'
-const ODDS_API_KEY = process.env.ODDS_API_KEY!
 
 export const TARGET_BOOKMAKERS = ['Superbet', 'Bet7k']
 export const TARGET_SPORT = 'football'
@@ -29,14 +28,18 @@ export async function fetchValueBets(
 ): Promise<OddsAPIValueBet[]> {
   const { bookmaker, sport = TARGET_SPORT, includeEventDetails = true } = options
 
-  if (!ODDS_API_KEY) {
+  // Read at call time (not module load) so the value is never stale and the
+  // missing-key path stays testable.
+  const apiKey = process.env.ODDS_API_KEY
+
+  if (!apiKey) {
     throw new Error('ODDS_API_KEY environment variable is not set')
   }
 
   // Build params object explicitly so nothing is accidentally omitted or
   // mis-cased. The API is case-sensitive on both keys and values.
   const params: Record<string, string> = {
-    apiKey: ODDS_API_KEY,
+    apiKey,
     bookmaker: bookmaker,
     sport: sport,
     includeEventDetails: includeEventDetails ? 'true' : 'false',
@@ -54,7 +57,7 @@ export async function fetchValueBets(
     timeout: 15000,
     headers: {
       Accept: 'application/json',
-      'User-Agent': 'Supp-Betting-Platform/1.0',
+      'User-Agent': 'ValueBetFinder/1.0',
     },
   })
 

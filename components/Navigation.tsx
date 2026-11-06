@@ -25,7 +25,9 @@ export default function Navigation() {
       <div className="px-4 py-5 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <span className="text-xl">🎯</span>
-          <span className="font-bold text-white text-lg">Supp</span>
+          <span className="font-bold text-white text-lg" title="Value Bet Finder">
+            VBF
+          </span>
           <span className="text-xs text-gray-500 font-medium bg-gray-800 px-1.5 py-0.5 rounded">
             BETA
           </span>

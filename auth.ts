@@ -33,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return {
             id: '1',
             name: adminUsername,
-            email: `${adminUsername}@supp.local`,
+            email: `${adminUsername}@valuebetfinder.local`,
           }
         }
 

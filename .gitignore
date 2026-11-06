@@ -11,8 +11,15 @@ build/
 
 # Environment
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+
+# Vercel
+.vercel/
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
 
 # Testing
 coverage/

@@ -3,8 +3,19 @@ import './globals.css'
 import { SessionProvider } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Supp | Value Bet Platform',
-  description: 'Private sports betting value bet discovery platform',
+  title: 'Value Bet Finder | Radar de Value Bets',
+  description:
+    'Plataforma para estudo de value bets, gestão de banca e análise de desempenho com o critério de Kelly.',
+  applicationName: 'Value Bet Finder',
+  authors: [{ name: 'Júnior Silva', url: 'https://github.com/jrchakalo' }],
+  keywords: [
+    'value bets',
+    'expected value',
+    'critério de Kelly',
+    'gestão de banca',
+    'Next.js',
+    'Supabase',
+  ],
   icons: {
     icon: '/favicon.ico',
   },

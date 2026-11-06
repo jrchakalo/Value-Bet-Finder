@@ -126,12 +126,13 @@ describe('Database Module', () => {
 
       let capturedRecords: unknown[] = []
       const chain = {
-        upsert: vi.fn((records) => {
-          capturedRecords = records
-          return chain
-        }),
+        upsert: vi.fn(),
         select: vi.fn().mockResolvedValue({ data: [{ id: 'test-vb-001' }], error: null }),
       }
+      chain.upsert.mockImplementation((records: unknown[]) => {
+        capturedRecords = records
+        return chain
+      })
       mockFrom.mockReturnValue(chain as never)
 
       const { upsertValueBets } = await import('../lib/database')

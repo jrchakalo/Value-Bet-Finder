@@ -57,9 +57,13 @@ async function updateWorkerStatus(
     })
   }
 
-  // Increment total_fetches separately to avoid overwriting it
+  // Increment total_fetches separately to avoid overwriting it.
+  // A failure here must not turn a successful fetch cycle into a 500.
   if (existing?.id && !lastError) {
-    await supabaseAdmin.rpc('increment_total_fetches')
+    const { error: rpcError } = await supabaseAdmin.rpc('increment_total_fetches')
+    if (rpcError) {
+      console.error('[Cron] Failed to increment total_fetches:', rpcError.message)
+    }
   }
 }
 

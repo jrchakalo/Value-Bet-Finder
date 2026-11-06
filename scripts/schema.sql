@@ -1,11 +1,19 @@
 -- ============================================================
--- Supp Betting Platform - Database Schema
--- Run this in your Supabase SQL Editor if migrations fail
--- Safe to run multiple times (idempotent)
+-- Value Bet Finder — Database schema & security baseline
+-- Run this in the Supabase SQL Editor if you are not using the
+-- Supabase CLI migrations. Safe to run multiple times.
+--
+-- Canonical migration:
+--   supabase/migrations/20261106000000_schema_security.sql
 -- ============================================================
 
--- Value Bets Table
-CREATE TABLE IF NOT EXISTS value_bets (
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- ------------------------------------------------------------
+-- Tables
+-- ------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.value_bets (
   id TEXT PRIMARY KEY,
   event_id BIGINT NOT NULL,
   bookmaker TEXT NOT NULL,
@@ -21,7 +29,8 @@ CREATE TABLE IF NOT EXISTS value_bets (
   league TEXT NOT NULL,
   hdp DECIMAL(10, 2),
   max_stake DECIMAL(10, 2),
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'won', 'lost', 'void', 'pending_result')),
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'inactive', 'won', 'lost', 'void', 'pending_result')),
   result TEXT CHECK (result IN ('won', 'lost', 'void')),
   resolved_at TIMESTAMPTZ,
   stake_amount DECIMAL(10, 2),
@@ -30,17 +39,15 @@ CREATE TABLE IF NOT EXISTS value_bets (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Bankroll Table
-CREATE TABLE IF NOT EXISTS bankroll (
+CREATE TABLE IF NOT EXISTS public.bankroll (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   amount DECIMAL(12, 2) NOT NULL DEFAULT 1000.00,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Bankroll Transactions Table
-CREATE TABLE IF NOT EXISTS bankroll_transactions (
+CREATE TABLE IF NOT EXISTS public.bankroll_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  bet_id TEXT REFERENCES value_bets(id) ON DELETE SET NULL,
+  bet_id TEXT REFERENCES public.value_bets(id) ON DELETE SET NULL,
   type TEXT NOT NULL CHECK (type IN ('deposit', 'withdrawal', 'win', 'loss', 'adjustment')),
   amount DECIMAL(12, 2) NOT NULL,
   balance_after DECIMAL(12, 2) NOT NULL,
@@ -48,8 +55,7 @@ CREATE TABLE IF NOT EXISTS bankroll_transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Worker Status Table
-CREATE TABLE IF NOT EXISTS worker_status (
+CREATE TABLE IF NOT EXISTS public.worker_status (
   id INTEGER PRIMARY KEY DEFAULT 1,
   last_fetch TIMESTAMPTZ,
   next_fetch TIMESTAMPTZ,
@@ -59,54 +65,123 @@ CREATE TABLE IF NOT EXISTS worker_status (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Upgrade the old status CHECK constraint (adds `inactive`).
+ALTER TABLE public.value_bets
+  DROP CONSTRAINT IF EXISTS value_bets_status_check;
+
+ALTER TABLE public.value_bets
+  ADD CONSTRAINT value_bets_status_check
+  CHECK (status IN ('active', 'inactive', 'won', 'lost', 'void', 'pending_result'));
+
+-- ------------------------------------------------------------
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_value_bets_status ON value_bets(status);
-CREATE INDEX IF NOT EXISTS idx_value_bets_event_date ON value_bets(event_date);
-CREATE INDEX IF NOT EXISTS idx_value_bets_bookmaker ON value_bets(bookmaker);
-CREATE INDEX IF NOT EXISTS idx_value_bets_created_at ON value_bets(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_bankroll_transactions_created_at ON bankroll_transactions(created_at DESC);
+-- ------------------------------------------------------------
 
--- ============================================================
--- Seed Data
--- ============================================================
+CREATE INDEX IF NOT EXISTS idx_value_bets_status
+  ON public.value_bets(status);
+CREATE INDEX IF NOT EXISTS idx_value_bets_status_event_date
+  ON public.value_bets(status, event_date);
+CREATE INDEX IF NOT EXISTS idx_value_bets_event_date
+  ON public.value_bets(event_date);
+CREATE INDEX IF NOT EXISTS idx_value_bets_bookmaker
+  ON public.value_bets(bookmaker);
+CREATE INDEX IF NOT EXISTS idx_value_bets_created_at
+  ON public.value_bets(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bankroll_transactions_created_at
+  ON public.bankroll_transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bankroll_transactions_bet_id
+  ON public.bankroll_transactions(bet_id);
 
--- Seed worker_status row (id=1 is the singleton row)
-INSERT INTO worker_status (id, total_fetches, bets_stored)
-  VALUES (1, 0, 0)
-  ON CONFLICT (id) DO NOTHING;
+-- ------------------------------------------------------------
+-- Seed data
+-- ------------------------------------------------------------
 
--- Seed initial bankroll only when the table is empty
-INSERT INTO bankroll (amount, updated_at)
-  SELECT 1000.00, NOW()
-  WHERE NOT EXISTS (SELECT 1 FROM bankroll LIMIT 1);
+INSERT INTO public.worker_status (id, total_fetches, bets_stored)
+VALUES (1, 0, 0)
+ON CONFLICT (id) DO NOTHING;
 
--- ============================================================
+INSERT INTO public.bankroll (amount, updated_at)
+SELECT 1000.00, NOW()
+WHERE NOT EXISTS (SELECT 1 FROM public.bankroll LIMIT 1);
+
+-- ------------------------------------------------------------
+-- RPC used by /api/cron/update
+-- ------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.increment_total_fetches()
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  UPDATE public.worker_status
+  SET total_fetches = total_fetches + 1,
+      updated_at = NOW()
+  WHERE id = 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.increment_total_fetches() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.increment_total_fetches() TO service_role;
+
+COMMENT ON FUNCTION public.increment_total_fetches()
+  IS 'Atomically increments worker_status.total_fetches (service_role only).';
+
+-- ------------------------------------------------------------
 -- Row Level Security
--- NOTE: Run the statements below manually in the Supabase SQL
--- Editor ONE time after first deploy.  They are kept here for
--- reference but intentionally left as comments so that this
--- file remains safe to re-run via automated tooling without
--- triggering linter warnings on ALTER TABLE / CREATE POLICY.
---
--- ALTER TABLE value_bets            ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE bankroll              ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE bankroll_transactions ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE worker_status         ENABLE ROW LEVEL SECURITY;
---
--- DROP POLICY IF EXISTS "Service role full access on value_bets"            ON value_bets;
--- DROP POLICY IF EXISTS "Service role full access on bankroll"               ON bankroll;
--- DROP POLICY IF EXISTS "Service role full access on bankroll_transactions"  ON bankroll_transactions;
--- DROP POLICY IF EXISTS "Service role full access on worker_status"          ON worker_status;
---
--- CREATE POLICY "Service role full access on value_bets"
---   ON value_bets FOR ALL USING (true) WITH CHECK (true);
---
--- CREATE POLICY "Service role full access on bankroll"
---   ON bankroll FOR ALL USING (true) WITH CHECK (true);
---
--- CREATE POLICY "Service role full access on bankroll_transactions"
---   ON bankroll_transactions FOR ALL USING (true) WITH CHECK (true);
---
--- CREATE POLICY "Service role full access on worker_status"
---   ON worker_status FOR ALL USING (true) WITH CHECK (true);
--- ============================================================
+-- The app only uses the service_role key on the server.
+-- No policy is granted to anon/authenticated.
+-- ------------------------------------------------------------
+
+ALTER TABLE public.value_bets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bankroll ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bankroll_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.worker_status ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service_role_full_access_value_bets" ON public.value_bets;
+CREATE POLICY "service_role_full_access_value_bets"
+  ON public.value_bets
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "service_role_full_access_bankroll" ON public.bankroll;
+CREATE POLICY "service_role_full_access_bankroll"
+  ON public.bankroll
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "service_role_full_access_bankroll_transactions" ON public.bankroll_transactions;
+CREATE POLICY "service_role_full_access_bankroll_transactions"
+  ON public.bankroll_transactions
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "service_role_full_access_worker_status" ON public.worker_status;
+CREATE POLICY "service_role_full_access_worker_status"
+  ON public.worker_status
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- ------------------------------------------------------------
+-- Table privileges (defense in depth)
+-- RLS already blocks anon/authenticated, but removing their
+-- table grants prevents access even if a policy is added later
+-- by mistake. Only service_role (server-side) gets privileges.
+-- ------------------------------------------------------------
+
+REVOKE ALL ON TABLE public.value_bets FROM anon, authenticated;
+REVOKE ALL ON TABLE public.bankroll FROM anon, authenticated;
+REVOKE ALL ON TABLE public.bankroll_transactions FROM anon, authenticated;
+REVOKE ALL ON TABLE public.worker_status FROM anon, authenticated;
+
+GRANT ALL ON TABLE public.value_bets TO service_role;
+GRANT ALL ON TABLE public.bankroll TO service_role;
+GRANT ALL ON TABLE public.bankroll_transactions TO service_role;
+GRANT ALL ON TABLE public.worker_status TO service_role;

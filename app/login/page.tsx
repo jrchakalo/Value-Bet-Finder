@@ -46,8 +46,10 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gradient">Supp</h1>
-          <p className="text-gray-500 mt-2 text-sm">Value Bet Intelligence Platform</p>
+          <h1 className="text-3xl font-bold text-gradient">Value Bet Finder</h1>
+          <p className="text-gray-500 mt-2 text-sm">
+            Radar de value bets, gestão de banca e análise de desempenho
+          </p>
         </div>
 
         {/* Login Card */}

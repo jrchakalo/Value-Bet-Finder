@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export const metadata = {
-  title: 'Radar | Supp',
-  description: 'Live value bets radar',
+  title: 'Radar | Value Bet Finder',
+  description: 'Radar de value bets ativas com sugestão de stake por Kelly',
 }
 
 export default function RadarPage() {

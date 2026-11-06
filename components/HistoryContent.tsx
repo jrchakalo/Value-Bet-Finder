@@ -500,7 +500,8 @@ export default function HistoryContent() {
                               {bet.bookmaker_odds.toFixed(2)}
                             </td>
                             <td className="py-3 pr-4 text-right text-emerald-400">
-                              +{bet.expected_value.toFixed(2)}%
+                              {(bet.expected_value - 100) >= 0 ? '+' : ''}
+                              {(bet.expected_value - 100).toFixed(2)}%
                             </td>
                             <td className="py-3 pr-4 text-right text-gray-400">
                               {bet.stake_amount != null
