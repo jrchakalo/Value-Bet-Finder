@@ -86,4 +86,21 @@ describe('BankrollWidget Component', () => {
     render(<BankrollWidget />)
     expect(screen.getByText('Banca')).toBeDefined()
   })
+
+  it('should be read-only for the demo account', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { id: '1', amount: 1000.00, updated_at: new Date().toISOString() },
+        }),
+    })
+
+    render(<BankrollWidget readOnly />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Somente leitura')).toBeDefined()
+    })
+    expect(screen.queryByText('Editar')).toBeNull()
+  })
 })

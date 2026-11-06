@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getBankroll, updateBankroll } from '@/lib/database'
+import { canWrite } from '@/lib/permissions'
 import { z } from 'zod'
 
 export async function GET() {
@@ -22,6 +23,12 @@ export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!canWrite(session.user.role)) {
+    return NextResponse.json(
+      { error: 'Demo account is read-only' },
+      { status: 403 }
+    )
   }
 
   const schema = z.object({ amount: z.number().positive() })

@@ -24,13 +24,13 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError('Invalid credentials. Please try again.')
+        setError('Usuário ou senha inválidos. Tente novamente.')
       } else {
         router.push('/radar')
         router.refresh()
       }
     } catch {
-      setError('An unexpected error occurred.')
+      setError('Ocorreu um erro inesperado.')
     } finally {
       setLoading(false)
     }
@@ -54,12 +54,12 @@ export default function LoginPage() {
 
         {/* Login Card */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-xl font-semibold text-gray-100 mb-6">Sign In</h2>
+          <h2 className="text-xl font-semibold text-gray-100 mb-6">Entrar</h2>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-400 mb-2">
-                Username
+                Usuário
               </label>
               <input
                 id="username"
@@ -67,7 +67,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                placeholder="Enter username"
+                placeholder="Digite seu usuário"
                 required
                 autoComplete="username"
               />
@@ -75,7 +75,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-2">
-                Password
+                Senha
               </label>
               <input
                 id="password"
@@ -83,7 +83,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                placeholder="Enter password"
+                placeholder="Digite sua senha"
                 required
                 autoComplete="current-password"
               />
@@ -109,17 +109,31 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Signing in...
+                  Entrando...
                 </>
               ) : (
-                'Sign In'
+                'Entrar'
               )}
             </button>
           </form>
         </div>
 
+        <div className="mt-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+          <p className="text-xs font-medium text-emerald-400 mb-1.5">
+            Acesso de demonstração · somente leitura
+          </p>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Usuário: <code className="text-gray-200">demo</code>
+            {' · '}
+            Senha: <code className="text-gray-200">demo-value-bets</code>
+          </p>
+          <p className="text-[11px] text-gray-600 mt-1.5">
+            Navegue pelo radar, histórico e analytics. Alterações são restritas ao administrador.
+          </p>
+        </div>
+
         <p className="text-center text-gray-700 text-xs mt-6">
-          Private access only. Unauthorized access is prohibited.
+          Acesso educacional. Não é recomendação de aposta.
         </p>
       </div>
     </div>

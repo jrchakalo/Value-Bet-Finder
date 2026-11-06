@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import ValueBetCard from './ValueBetCard'
 import BankrollWidget from './BankrollWidget'
 import WorkerStatusBadge from './WorkerStatusBadge'
@@ -8,6 +9,8 @@ import LoadingSpinner from './LoadingSpinner'
 import { ValueBet } from '@/lib/types'
 
 export default function RadarContent() {
+  const { data: session } = useSession()
+  const isDemo = session?.user?.role === 'demo'
   const [bets, setBets] = useState<ValueBet[]>([])
   const [bankroll, setBankroll] = useState<number>(1000)
   const [kellyFraction, setKellyFraction] = useState<number>(0.25)
@@ -124,6 +127,11 @@ export default function RadarContent() {
             <WorkerStatusBadge />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {isDemo && (
+              <span className="px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium">
+                Modo demo · somente leitura
+              </span>
+            )}
             {lastUpdated && (
               <span className="text-xs text-gray-500">
                 Atualizado às {lastUpdated.toLocaleTimeString('pt-BR')}
@@ -135,20 +143,22 @@ export default function RadarContent() {
             >
               ↻ Atualizar
             </button>
-            <button
-              onClick={handleForceFetch}
-              disabled={forceFetching}
-              className="px-3 py-1 rounded bg-emerald-700/30 hover:bg-emerald-700/50 border border-emerald-600/40 text-emerald-400 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-            >
-              {forceFetching ? (
-                <>
-                  <span className="inline-block w-3 h-3 border-2 border-emerald-400/40 border-t-emerald-400 rounded-full animate-spin" />
-                  Carregando...
-                </>
-              ) : (
-                '⚡ Forçar Busca de Value Bets'
-              )}
-            </button>
+            {!isDemo && (
+              <button
+                onClick={handleForceFetch}
+                disabled={forceFetching}
+                className="px-3 py-1 rounded bg-emerald-700/30 hover:bg-emerald-700/50 border border-emerald-600/40 text-emerald-400 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                {forceFetching ? (
+                  <>
+                    <span className="inline-block w-3 h-3 border-2 border-emerald-400/40 border-t-emerald-400 rounded-full animate-spin" />
+                    Carregando...
+                  </>
+                ) : (
+                  '⚡ Forçar Busca de Value Bets'
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -177,7 +187,7 @@ export default function RadarContent() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Banca */}
           <div className="md:col-span-1">
-            <BankrollWidget onBankrollChange={setBankroll} />
+            <BankrollWidget onBankrollChange={setBankroll} readOnly={isDemo} />
           </div>
 
           {/* Fração Kelly */}
@@ -308,6 +318,7 @@ export default function RadarContent() {
                 bankroll={bankroll}
                 kellyFraction={kellyFraction}
                 onResolve={handleBetResolved}
+                readOnly={isDemo}
               />
             ))}
           </div>

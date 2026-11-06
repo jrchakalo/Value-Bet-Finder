@@ -124,4 +124,13 @@ describe('ValueBetCard Component', () => {
     render(<ValueBetCard bet={mockBet} bankroll={1000} />)
     expect(screen.getByText(/Amanhã/)).toBeDefined()
   })
+
+  it('should hide resolution actions for the demo account', () => {
+    render(<ValueBetCard bet={mockBet} bankroll={1000} readOnly />)
+
+    expect(screen.getByText('Modo demonstração · somente leitura')).toBeDefined()
+    expect(screen.queryByText('Resolver Aposta')).toBeNull()
+    // The external bookmaker link remains available as read-only data
+    expect(screen.getByTitle('Abrir na casa de apostas')).toBeDefined()
+  })
 })

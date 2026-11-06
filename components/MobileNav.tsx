@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 const navItems = [
   { href: '/radar', icon: '⚡', label: 'Radar' },
-  { href: '/history', icon: '📈', label: 'History' },
+  { href: '/history', icon: '📈', label: 'Histórico' },
 ]
 
 export default function MobileNav() {

@@ -6,9 +6,13 @@ import { formatStake } from '@/lib/kelly'
 
 interface BankrollWidgetProps {
   onBankrollChange?: (amount: number) => void
+  readOnly?: boolean
 }
 
-export default function BankrollWidget({ onBankrollChange }: BankrollWidgetProps) {
+export default function BankrollWidget({
+  onBankrollChange,
+  readOnly = false,
+}: BankrollWidgetProps) {
   const [bankroll, setBankroll] = useState<Bankroll | null>(null)
   const [editing, setEditing] = useState(false)
   const [inputValue, setInputValue] = useState('')
@@ -34,6 +38,7 @@ export default function BankrollWidget({ onBankrollChange }: BankrollWidgetProps
   }, [])
 
   function startEditing() {
+    if (readOnly) return
     setInputValue(bankroll?.amount.toFixed(2) ?? '1000.00')
     setEditing(true)
     setError('')
@@ -105,9 +110,10 @@ export default function BankrollWidget({ onBankrollChange }: BankrollWidgetProps
           </div>
           <button
             onClick={startEditing}
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+            disabled={readOnly}
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1 rounded hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Editar
+            {readOnly ? 'Somente leitura' : 'Editar'}
           </button>
         </div>
       ) : (

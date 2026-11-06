@@ -29,11 +29,20 @@
 
 ## 📌 Sobre o projeto
 
-O **Value Bet Finder (VBF)** é uma aplicação full-stack single-user para **descobrir, registrar e analisar value bets** em futebol. O projeto nasceu como um estudo prático de engenharia de software, integração de APIs, modelagem de dados, autenticação, estatística aplicada e visualização de dados — e não como um produto de apostas.
+O **Value Bet Finder (VBF)** é uma aplicação full-stack single-admin, com uma conta de demonstração somente leitura, para **descobrir, registrar e analisar value bets** em futebol. O projeto nasceu como um estudo prático de engenharia de software, integração de APIs, modelagem de dados, autenticação, estatística aplicada e visualização de dados — e não como um produto de apostas.
 
 A aplicação consome o endpoint `/v3/value-bets` do [Odds-API.io](https://odds-api.io/) para duas casas de apostas (Superbet e Bet7k), persiste as oportunidades no Supabase, calcula o stake sugerido com o **critério de Kelly fracionado** e permite acompanhar banca, resultados e métricas de desempenho ao longo do tempo.
 
-> **Acesso:** a demo é protegida por login. O projeto foi desenhado para um único usuário administrador, configurado por variáveis de ambiente. Para testar localmente, defina `ADMIN_USERNAME` e `ADMIN_PASSWORD` no seu `.env`.
+> **Acesso:** a demo é protegida por login e possui dois perfis:
+>
+> | Perfil | Usuário | Senha | Permissões |
+> | --- | --- | --- | --- |
+> | Demonstração | `demo` | `demo-value-bets` | Somente leitura |
+> | Administrador | `ADMIN_USERNAME` | `ADMIN_PASSWORD` | Completo |
+>
+> A conta `demo` é habilitada por padrão e permite navegar pelo radar, histórico, banca e analytics. Ela **não** pode forçar buscas, editar a banca ou resolver apostas — as rotas de escrita retornam `403` para esse perfil. Para alterar as credenciais, defina `DEMO_USERNAME`/`DEMO_PASSWORD`; para desativar, use `DEMO_ENABLED=false`.
+>
+> Para testar localmente como administrador, defina `ADMIN_USERNAME` e `ADMIN_PASSWORD` no seu `.env`.
 
 **Domínio canônico:** [valuebetfinder.vercel.app](https://valuebetfinder.vercel.app)
 
@@ -81,6 +90,8 @@ A aplicação consome o endpoint `/v3/value-bets` do [Odds-API.io](https://odds-
 ### Segurança e experiência
 
 - Login com Auth.js/NextAuth v5 (estratégia JWT, sessão de 24 horas).
+- Dois perfis: administrador (variáveis de ambiente) e demonstração somente leitura.
+- Escritas bloqueadas no servidor para o perfil demo (`403`), não apenas escondidas na interface.
 - Rotas de API protegidas por sessão.
 - Validação de payloads com Zod.
 - Row Level Security (RLS) habilitado no Supabase.
@@ -89,7 +100,7 @@ A aplicação consome o endpoint `/v3/value-bets` do [Odds-API.io](https://odds-
 
 ---
 
-## 🧠 O que este projeto demonstra (para portfólio)
+## 🧠 O que este projeto demonstra
 
 Este repositório foi organizado para evidenciar competências técnicas além da interface:
 
@@ -218,6 +229,7 @@ O repositório passou por uma revisão de segurança antes de se tornar público
 - O Supabase tem **RLS habilitado** em todas as tabelas. Não há policies para `anon` ou `authenticated`; o acesso ocorre via `service_role`, que bypassa RLS e é mantido no servidor.
 - O endpoint `/api/cron/update` exige `Authorization: Bearer <CRON_SECRET>` e aplica rate limit de 90 segundos.
 - As rotas de dados exigem sessão autenticada.
+- O perfil `demo` é somente leitura: `/api/bets` (POST), `/api/bets/resolve` e `/api/bankroll` (PUT) retornam `403` para ele.
 - Payloads de entrada são validados com Zod.
 - Dependências de produção foram atualizadas para versões com correções de segurança. Rode `npm audit --omit=dev` antes de cada deploy.
 
@@ -232,6 +244,8 @@ Para reportar uma vulnerabilidade, leia [SECURITY.md](SECURITY.md). Não abra um
 | `NEXTAUTH_SECRET` | Auth.js | Gere com `openssl rand -base64 32` |
 | `ADMIN_PASSWORD` | Auth.js | Use uma senha forte e exclusiva |
 | `CRON_SECRET` | `/api/cron/update` | Gere com `openssl rand -base64 32` |
+
+> As credenciais de demonstração (`DEMO_USERNAME`/`DEMO_PASSWORD`) são públicas por design, pois a conta é somente leitura. Nunca reutilize nelas a senha do administrador.
 
 ---
 
@@ -463,7 +477,8 @@ npm run test:coverage
 - **Upsert + desativação:** mantém o histórico sem apagar registros e sem duplicar apostas quando o mesmo `id` reaparece.
 - **Kelly fracionado:** reduz a volatilidade e o risco de ruína em comparação ao Kelly cheio, ao custo de menor crescimento esperado.
 - **Worker separado + endpoint de cron:** atende tanto a um processo de longa duração quanto a um deploy serverless.
-- **Single-user:** simplifica autenticação e autorização, mantendo o foco do estudo em ingestão, estatística e produto. Uma evolução natural é multi-user com Supabase Auth e RLS por usuário.
+- **Perfis de acesso:** um administrador com permissões completas e uma conta de demonstração somente leitura. A restrição é aplicada no servidor, então esconder botões na UI é apenas uma camada de experiência, não a única proteção.
+- **Single-admin:** simplifica autenticação e autorização, mantendo o foco do estudo em ingestão, estatística e produto. Uma evolução natural é multi-user com Supabase Auth e RLS por usuário.
 - **SQL versionado:** migrations idempotentes facilitam reproduzir o ambiente e revisar mudanças de schema.
 
 ---

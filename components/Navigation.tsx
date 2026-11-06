@@ -3,15 +3,17 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 
 const navItems = [
   { href: '/radar', label: 'Radar', icon: '⚡' },
-  { href: '/history', label: 'History', icon: '📈' },
+  { href: '/history', label: 'Histórico', icon: '📈' },
 ]
 
 export default function Navigation() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const isDemo = session?.user?.role === 'demo'
   const [signingOut, setSigningOut] = useState(false)
 
   async function handleSignOut() {
@@ -31,6 +33,11 @@ export default function Navigation() {
           <span className="text-xs text-gray-500 font-medium bg-gray-800 px-1.5 py-0.5 rounded">
             BETA
           </span>
+          {isDemo && (
+            <span className="text-xs text-amber-400 font-medium bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded">
+              DEMO
+            </span>
+          )}
         </div>
       </div>
 
@@ -67,7 +74,7 @@ export default function Navigation() {
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-200 hover:bg-gray-800/50 transition-colors disabled:opacity-50"
         >
           <span className="text-base">→</span>
-          {signingOut ? 'Signing out…' : 'Sign Out'}
+          {signingOut ? 'Saindo…' : 'Sair'}
         </button>
       </div>
     </nav>

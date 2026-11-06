@@ -10,6 +10,7 @@ interface ValueBetCardProps {
   bankroll: number
   kellyFraction?: number
   onResolve?: (betId: string, result: 'won' | 'lost' | 'void', stake: number) => void
+  readOnly?: boolean
 }
 
 export default function ValueBetCard({
@@ -17,6 +18,7 @@ export default function ValueBetCard({
   bankroll,
   kellyFraction = 0.25,
   onResolve,
+  readOnly = false,
 }: ValueBetCardProps) {
   const [showResolve, setShowResolve] = useState(false)
   const [resolving, setResolving] = useState(false)
@@ -225,7 +227,24 @@ export default function ValueBetCard({
         </div>
 
         {/* Seção de resolução */}
-        {!showResolve ? (
+        {readOnly ? (
+          <div className="flex gap-2 pt-1">
+            <span className="flex-1 py-2 text-center bg-amber-500/5 border border-amber-500/20 text-amber-400/80 text-xs font-medium rounded-lg">
+              Modo demonstração · somente leitura
+            </span>
+            {bet.bookmaker_href && (
+              <a
+                href={bet.bookmaker_href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-600/40 text-blue-400 text-sm rounded-lg transition-colors"
+                title="Abrir na casa de apostas"
+              >
+                ↗
+              </a>
+            )}
+          </div>
+        ) : !showResolve ? (
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => setShowResolve(true)}

@@ -37,6 +37,7 @@ Você receberá um retorno assim que possível. Pedimos que não divulgue public
 - Rotas de dados devem exigir sessão autenticada.
 - Rode `npm audit --omit=dev` antes de cada deploy e mantenha as dependências de produção atualizadas.
 - Use senhas fortes e exclusivas para `ADMIN_PASSWORD` e `CRON_SECRET`.
+- A conta `demo` é pública por design e deve permanecer **somente leitura**. Nunca reutilize nela a senha do administrador nem conceda permissões de escrita.
 
 ## Boas práticas para quem for implantar
 

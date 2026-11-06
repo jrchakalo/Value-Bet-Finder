@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { resolveBet } from '@/lib/database'
+import { canWrite } from '@/lib/permissions'
 import { z } from 'zod'
 
 const resolveSchema = z.object({
@@ -13,6 +14,12 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!canWrite(session.user.role)) {
+    return NextResponse.json(
+      { error: 'Demo account is read-only' },
+      { status: 403 }
+    )
   }
 
   try {

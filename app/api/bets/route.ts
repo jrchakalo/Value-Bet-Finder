@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getActiveValueBets, upsertValueBets } from '@/lib/database'
 import { fetchAllTargetValueBets } from '@/lib/odds-api'
+import { canWrite } from '@/lib/permissions'
 
 export async function GET() {
   const session = await auth()
@@ -27,6 +28,12 @@ export async function POST() {
   const session = await auth()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!canWrite(session.user.role)) {
+    return NextResponse.json(
+      { error: 'Demo account is read-only' },
+      { status: 403 }
+    )
   }
 
   try {

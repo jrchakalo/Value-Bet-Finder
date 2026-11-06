@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import { z } from 'zod'
+import { authenticateCredentials } from './lib/auth-credentials'
 
 const credentialsSchema = z.object({
   username: z.string().min(1),
@@ -21,23 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { username, password } = parsed.data
 
-        const adminUsername = process.env.ADMIN_USERNAME
-        const adminPassword = process.env.ADMIN_PASSWORD
-
-        if (!adminUsername || !adminPassword) {
-          console.error('ADMIN_USERNAME or ADMIN_PASSWORD not set in .env')
-          return null
-        }
-
-        if (username === adminUsername && password === adminPassword) {
-          return {
-            id: '1',
-            name: adminUsername,
-            email: `${adminUsername}@valuebetfinder.local`,
-          }
-        }
-
-        return null
+        return authenticateCredentials(username, password)
       },
     }),
   ],
@@ -53,12 +38,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id
         token.name = user.name
+        token.role = user.role
       }
       return token
     },
     async session({ session, token }) {
-      if (token) {
+      if (session.user) {
         session.user.name = token.name as string
+        session.user.role =
+          token.role === 'demo' || token.role === 'admin' ? token.role : undefined
       }
       return session
     },
